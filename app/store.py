@@ -26,11 +26,17 @@ def get_redis_client(url: str | None = None):
     trong process, đúng cái mà CP4 đang tìm cách loại bỏ.
     """
     url = url or get_settings().redis_url
+    url = url.strip('"\'')
     if url.startswith("fake://"):
         import fakeredis
 
         return fakeredis.FakeRedis(decode_responses=True)
-    return redis.from_url(url, decode_responses=True)
+    return redis.from_url(
+        url,
+        decode_responses=True,
+        socket_connect_timeout=3.0,
+        socket_timeout=3.0,
+    )
 
 
 class ConversationStore:
