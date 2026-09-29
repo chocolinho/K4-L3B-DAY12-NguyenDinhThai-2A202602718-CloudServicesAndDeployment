@@ -10,9 +10,9 @@
 
 | Mục | Nội dung |
 |-----|----------|
-| Họ và tên | (điền họ tên) |
-| Mã học viên | (điền mã học viên) |
-| Repo | (điền link repo K4-L3B-DAY12-HoVaTen-MSSV-CloudServicesAndDeployment) |
+| Họ và tên | Nguyễn Đình Thái |
+| Mã học viên | 2A202602718 |
+| Repo | https://github.com/chocolinho/K4-L3B-DAY12-NguyenDinhThai-2A202602718-CloudServicesAndDeployment |
 
 ## Service
 
