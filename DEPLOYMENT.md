@@ -39,32 +39,63 @@ Ghi tên biến và **nguồn giá trị**, không ghi giá trị:
 
 Thay `<URL>` bằng Public URL ở trên:
 
-```bash
+### Dành cho Windows PowerShell:
+
+```powershell
+$URL = "https://day12-agent-production-6f3a.up.railway.app"
+$KEY = $env:AGENT_API_KEY  # Hoặc thay bằng giá trị API Key của bạn nếu chưa set biến môi trường
+
 # 1. Liveness — mong đợi 200 {"status":"ok"}
-curl -i https://day12-agent-production-6f3a.up.railway.app/health
+curl.exe -i "$URL/health"
 
 # 2. Readiness — mong đợi 200 {"status":"ready"} (đã nối được Redis)
-curl -i https://day12-agent-production-6f3a.up.railway.app/ready
+curl.exe -i "$URL/ready"
 
 # 3. Không có API key — mong đợi 401
-curl -i -X POST https://day12-agent-production-6f3a.up.railway.app/ask \
-  -H "Content-Type: application/json" \
+curl.exe -i -X POST "$URL/ask" `
+  -H "Content-Type: application/json" `
   -d '{"question":"Hello"}'
 
 # 4. Có API key — mong đợi 200 kèm câu trả lời
-curl -i -X POST https://day12-agent-production-6f3a.up.railway.app/ask \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: $AGENT_API_KEY" \
-  -H "X-User-Id: sv-test" \
+# Lưu ý trong PowerShell: dùng nháy đơn bao bọc chuỗi JSON '{"question":"..."}', KHÔNG escape '{\"question\":...}' để tránh lỗi 422
+curl.exe -i -X POST "$URL/ask" `
+  -H "Content-Type: application/json" `
+  -H "X-API-Key: $KEY" `
+  -H "X-User-Id: sv-test" `
   -d '{"question":"Deploy là gì?"}'
 
-# 5. Rate limit — gọi 15 lần, những lần cuối phải trả 429
+# 5. Rate limit — gọi 15 lần, các lần vượt hạn mức trả về 429
+1..15 | ForEach-Object {
+    curl.exe -s -o NUL -w "%{http_code} " `
+      -X POST "$URL/ask" `
+      -H "Content-Type: application/json" `
+      -H "X-API-Key: $KEY" `
+      -H "X-User-Id: sv-test" `
+      -d '{"question":"test"}'
+}
+Write-Host
+```
+
+### Dành cho Bash (Linux/macOS):
+
+```bash
+URL="https://day12-agent-production-6f3a.up.railway.app"
+
+# 1. Liveness
+curl -i $URL/health
+
+# 2. Readiness
+curl -i $URL/ready
+
+# 3. Không có API key
+curl -i -X POST $URL/ask -H "Content-Type: application/json" -d '{"question":"Hello"}'
+
+# 4. Có API key
+curl -i -X POST $URL/ask -H "Content-Type: application/json" -H "X-API-Key: $AGENT_API_KEY" -H "X-User-Id: sv-test" -d '{"question":"Deploy là gì?"}'
+
+# 5. Rate limit
 for i in $(seq 1 15); do
-  curl -s -o /dev/null -w "%{http_code} " -X POST https://day12-agent-production-6f3a.up.railway.app/ask \
-    -H "Content-Type: application/json" \
-    -H "X-API-Key: $AGENT_API_KEY" \
-    -H "X-User-Id: sv-test" \
-    -d '{"question":"test"}'
+  curl -s -o /dev/null -w "%{http_code} " -X POST $URL/ask -H "Content-Type: application/json" -H "X-API-Key: $AGENT_API_KEY" -H "X-User-Id: sv-test" -d '{"question":"test"}'
 done; echo
 ```
 
@@ -87,6 +118,14 @@ Content-Type: application/json
 HTTP/1.1 401 Unauthorized
 Content-Type: application/json
 {"detail":"invalid or missing API key"}
+
+# 4. Request có API key:
+HTTP/1.1 200 OK
+Content-Type: application/json
+{"answer":"Câu hỏi hay. Deploy là gì thường được giải quyết bằng cách chuẩn hóa môi trường chạy: cùng một image chạy giống nhau ở laptop và trên cloud.","user_id":"sv-test","history_length":0,"cost_usd":2.145e-05,"tokens":{"in":3,"out":35}}
+
+# 5. Rate limit 15 request liên tiếp:
+200 200 200 200 200 200 200 200 200 429 429 429 429 429 429
 ```
 
 ## Ảnh Chụp Màn Hình
